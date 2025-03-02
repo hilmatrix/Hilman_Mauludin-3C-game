@@ -42,6 +42,10 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 _climbOffset;
     [SerializeField]
     private float _climbSpeed;
+    [SerializeField]
+    private Transform _cameraTransform;
+    [SerializeField]
+    private CameraManager _cameraManager;
 
     private float _speed;
     private bool _isGrounded;
@@ -53,6 +57,13 @@ public class PlayerMovement : MonoBehaviour
         _rigidbody = GetComponent<Rigidbody>();
         _speed = _walkSpeed;
         _playerStance = PlayerStance.Stand;
+        HideAndLockCursor();
+    }
+
+    private void HideAndLockCursor()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     // Start is called before the first frame update
@@ -82,15 +93,40 @@ public class PlayerMovement : MonoBehaviour
         bool isPlayerClimbing = _playerStance == PlayerStance.Climb;
         if (isPlayerStanding)
         {
+            
+            switch (_cameraManager.CameraState)
+            {
+                case CameraState.ThirdPerson:
+                    if (axisDirection.magnitude >= 0.1)
+                    {
+                        float rotationAngle = Mathf.Atan2(axisDirection.x, axisDirection.y) * Mathf.Rad2Deg + _cameraTransform.eulerAngles.y;
+                        float smoothAngle = Mathf.SmoothDampAngle(transform.eulerAngles.y, rotationAngle, ref _rotationSmoothVelocity, _rotationSmoothTime);
+                        transform.rotation = Quaternion.Euler(0f,smoothAngle, 0f);
+                        movementDirection = Quaternion.Euler(0f,rotationAngle, 0f) * Vector3.forward;
+                        _rigidbody.AddForce(movementDirection * Time.deltaTime * _speed);
+                    }
+                    break;
+                case CameraState.FirstPerson:
+                    transform.rotation = Quaternion.Euler(0f, _cameraTransform.eulerAngles.y, 0f);Vector3 verticalDirection = axisDirection.y *transform.forward;
+                    Vector3 horizontalDirection = axisDirection.x * transform.right;
+                    movementDirection = verticalDirection + horizontalDirection;
+                    _rigidbody.AddForce(movementDirection * Time.deltaTime * _speed);
+                    break;
+                default:
+                    break;
+            }
+            /*
             if (axisDirection.magnitude >= 0.1)
             {
-                float rotationAngle = Mathf.Atan2(axisDirection.x, axisDirection.y) * Mathf.Rad2Deg;
+                float rotationAngle = Mathf.Atan2(axisDirection.x,axisDirection.y) *Mathf.Rad2Deg + _cameraTransform.eulerAngles.y;
                 float smoothAngle = Mathf.SmoothDampAngle(transform.eulerAngles.y, rotationAngle, ref _rotationSmoothVelocity, _rotationSmoothTime);
                 transform.rotation = Quaternion.Euler(0f, smoothAngle, 0f);
                 movementDirection = Quaternion.Euler(0f, rotationAngle, 0f) * Vector3.forward;
                 _rigidbody.AddForce(movementDirection * Time.deltaTime * _speed);
             }
+            */
         }
+
         else if (isPlayerClimbing)
         {
             Vector3 horizontal = axisDirection.x * transform.right;
@@ -124,7 +160,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (_isGrounded) {
             Vector3 jumpDirection = Vector3.up;
-            _rigidbody.AddForce(jumpDirection * _jumpForce * Time.deltaTime);
+            _rigidbody.AddForce(jumpDirection * _jumpForce);
         }
     }
 
@@ -157,6 +193,9 @@ public class PlayerMovement : MonoBehaviour
             transform.position = hit.point - offset;
             _playerStance = PlayerStance.Climb;
             _rigidbody.useGravity = false;
+
+            _cameraManager.SetFPSClampedCamera(true, transform.rotation.eulerAngles);
+            _cameraManager.SetTPSFieldOfView(70);
         }
 
     }
@@ -167,7 +206,10 @@ public class PlayerMovement : MonoBehaviour
         {
             _playerStance = PlayerStance.Stand;
             _rigidbody.useGravity = true;
-            transform.position -= transform.forward * 1f;
+            transform.position -= transform.forward * 0.3f;
+
+            _cameraManager.SetFPSClampedCamera(false, transform.rotation.eulerAngles);
+            _cameraManager.SetTPSFieldOfView(40);
         }
     }
 
