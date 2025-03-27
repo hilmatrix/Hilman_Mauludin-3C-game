@@ -7,8 +7,8 @@ EditorBuildSettings:
   m_Scenes:
   - enabled: 1
     path: Assets/Game/Scenes/MainMenu.unity
-    guid: fd807424f3676c249a21194d8c91dce2
+    guid: ee4be862588934446b9b5a3e02445fff
   - enabled: 1
-    path: Assets/Game/Scenes/GamePlay.unity
-    guid: 99c9720ab356a0642a771bea13969a05
+    path: Assets/Blockout/BlockoutGame.unity
+    guid: d307fbcb9b8c772469213f5b734ba723
   m_configObjects: {}
